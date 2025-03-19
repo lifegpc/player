@@ -71,3 +71,26 @@ DWORD WINAPI event_loop(LPVOID handle) {
     }
     return 0;
 }
+
+DWORD WINAPI external_window_event_loop(LPVOID handle) {
+    if (!handle) return PLAYER_ERR_NULLPTR;
+    PlayerSession* h = (PlayerSession*)handle;
+    SDL_Event e;
+    while (1) {
+        if (SDL_WaitEventTimeout(&e, 10)) {
+            switch (e.type) {
+            case FF_QUIT_EVENT:
+                return 0;
+            case FF_REFRESH_EVENT:
+                video_refresh_timer(e.user.data1);
+                break;
+            default:
+                break;
+            }
+        } else {
+            if (h->stoping) {
+                return 0;
+            }
+        }
+    }
+}

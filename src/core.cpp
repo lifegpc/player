@@ -165,7 +165,7 @@ int player_create2(const char* url, PlayerSession** session, PlayerSettings* set
         re = PLAYER_ERR_FAILED_CREATE_THREAD;
         goto end;
     }
-    ses->event_thread = CreateThread(nullptr, 0, event_loop, ses, 0, NULL);
+    ses->event_thread = CreateThread(nullptr, 0, ses->is_external_window ? external_window_event_loop : event_loop, ses, 0, NULL);
     if (!ses->event_thread) {
         re = PLAYER_ERR_FAILED_CREATE_THREAD;
         goto end;

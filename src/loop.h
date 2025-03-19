@@ -6,6 +6,7 @@ extern "C" {
 #include "core.h"
 DWORD WINAPI decode_loop(LPVOID handle);
 DWORD WINAPI event_loop(LPVOID handle);
+DWORD WINAPI external_window_event_loop(LPVOID handle);
 #if __cplusplus
 }
 #endif
