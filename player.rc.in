@@ -1,0 +1,46 @@
+#include <winver.h>
+#ifndef DEBUG
+#define VER_DEBUG 0
+#else
+#define VER_DEBUG VS_FF_DEBUG
+#endif
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     @PLAYER_VERSION_MAJOR@,@PLAYER_VERSION_MINOR@,@PLAYER_VERSION_MICRO@,@PLAYER_VERSION_REV@
+PRODUCTVERSION  @PLAYER_VERSION_MAJOR@,@PLAYER_VERSION_MINOR@,@PLAYER_VERSION_MICRO@,@PLAYER_VERSION_REV@
+FILEFLAGSMASK   VS_FF_DEBUG
+FILEFLAGS       VER_DEBUG
+FILEOS          VOS__WINDOWS32
+FILETYPE        VFT_DLL
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName",      "lifegpc\0"
+            VALUE "FileDescription",  "A simple player based on SDL2 and ffmpeg.\0"
+            VALUE "FileVersion",      "@PLAYER_VERSION@\0"
+            VALUE "InternalName",     "player\0"
+            VALUE "LegalCopyright",   "Copyright (C) 2025  lifegpc\0"
+            VALUE "OriginalFilename", "player.dll\0"
+            VALUE "ProductName",      "player\0"
+            VALUE "ProductVersion",   "@PLAYER_VERSION@\0"
+        END
+        BLOCK "080404b0"
+        BEGIN
+            VALUE "CompanyName",      "lifegpc\0"
+            VALUE "FileDescription",  "一个基于ffmpeg和SDL2的简单播放器。\0"
+            VALUE "FileVersion",      "@PLAYER_VERSION@\0"
+            VALUE "InternalName",     "player\0"
+            VALUE "LegalCopyright",   "Copyright (C) 2025  lifegpc\0"
+            VALUE "OriginalFilename", "player.dll\0"
+            VALUE "ProductName",      "player\0"
+            VALUE "ProductVersion",   "@PLAYER_VERSION@\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 0x04b0, 0x804, 0x04b0
+    END
+END
