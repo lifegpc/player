@@ -260,9 +260,7 @@ void play(const char* filename, void** hWnd) {
     if (wait_player_inited(ses)) {
         return;
     }
-    ses->is_playing = 1;
-    SDL_PauseAudioDevice(ses->device_id, 0);
-    schedule_refresh(ses, 1);
+    player_play(ses);
     while (ses->is_playing) {
         Sleep(10);
     }
@@ -361,4 +359,26 @@ int wait_player_inited(PlayerSession* session) {
         Sleep(10);
     }
     return session->err;
+}
+
+int player_play(PlayerSession* session) {
+    if (!session) return PLAYER_ERR_NULLPTR;
+    if (session->is_playing) return PLAYER_ERR_OK;
+    session->is_playing = 1;
+    if (session->has_audio) SDL_PauseAudioDevice(session->device_id, 0);
+    if (session->has_video) schedule_refresh(session, 1);
+    return PLAYER_ERR_OK;
+}
+
+int player_pause(PlayerSession* session) {
+    if (!session) return PLAYER_ERR_NULLPTR;
+    if (!session->is_playing) return PLAYER_ERR_OK;
+    session->is_playing = 0;
+    if (session->has_audio) SDL_PauseAudioDevice(session->device_id, 1);
+    return PLAYER_ERR_OK;
+}
+
+int player_is_playing(PlayerSession* session) {
+    if (!session) return 0;
+    return session->is_playing;
 }

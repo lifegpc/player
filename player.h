@@ -83,7 +83,30 @@ PLAYER_API int player_create(const char* url, PlayerSession** session);
  * @return 错误代码
 */
 PLAYER_API int player_create2(const char* url, PlayerSession** session, PlayerSettings* settings);
+/**
+ * @brief 等待播放器初始化完成
+ * @param session 播放器会话指针
+ * @return 错误代码
+ */
 PLAYER_API int wait_player_inited(PlayerSession* session);
+/**
+ * @brief 开始播放
+ * @param session 播放器会话指针
+ * @return 错误代码
+*/
+PLAYER_API int player_play(PlayerSession* session);
+/**
+ * @brief 暂停播放
+ * @param session 播放器会话指针
+ * @return 错误代码
+*/
+PLAYER_API int player_pause(PlayerSession* session);
+/**
+ * @brief 判断播放器是否正在播放
+ * @param session 播放器会话指针
+ * @return 是否正在播放
+*/
+PLAYER_API int player_is_playing(PlayerSession* session);
 PLAYER_API void player_free(PlayerSession** session);
 
 /**
