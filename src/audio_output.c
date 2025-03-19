@@ -45,6 +45,7 @@ int init_audio_output(PlayerSession* session) {
     }
     session->target_format = target_format;
     session->target_format_pbytes = av_get_bytes_per_sample(target_format);
+    session->needed_audio_samples = session->sdl_spec.freq * session->settings->audio_buffer_size / 1000;
     return PLAYER_ERR_OK;
 }
 
@@ -102,6 +103,7 @@ void SDL_audio_callback(void* userdata, uint8_t* stream, int len) {
         if (writed > 0) {
             AVRational base = {1, session->sdl_spec.freq};
             session->pts += av_rescale_q_rnd(writed, base, AV_TIME_BASE_Q, AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX);
+            session->last_pts_timestamp = av_gettime();
         }
         if (writed < 0) {
             memset(stream, 0, len);

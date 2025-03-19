@@ -178,47 +178,57 @@ int video_add_to_fifo(PlayerSession* handle, AVFrame* frame, char* writed) {
     if (!handle->has_video) return PLAYER_ERR_OK;
     int re = 0;
     DWORD res = 0;
+    if (handle->next_video_timestamp != INT64_MIN) {
+        // 碰撞检测
+        int64_t diff = handle->next_video_timestamp - av_gettime();
+        int64_t frame_time = av_rescale_q(1, av_make_q(1, handle->sdl_display_mode.refresh_rate), AV_TIME_BASE_Q) / 8;
+        if (diff <= frame_time  && diff >= -frame_time) {
+            DWORD sleepTime = (diff + frame_time) / 1000 + 1;
+            av_log(NULL, AV_LOG_DEBUG, "Sleep due to mutex collide: diff=%lld, sleep=%ld\n", diff, sleepTime);
+            Sleep(sleepTime);
+        }
+    }
     res = WaitForSingleObject(handle->video_mutex, INFINITE);
     if (res != WAIT_OBJECT_0) {
         re = PLAYER_ERR_WAIT_MUTEX_FAILED;
-        goto end;
+        return re;
     }
     if ((re = av_fifo_write(handle->video_buffer, &frame, 1)) < 0) {
-        av_log(NULL, AV_LOG_ERROR, "Failed to write video frame to buffer: %s (%i)\n", av_err2str(re), re);
         ReleaseMutex(handle->video_mutex);
+        av_log(NULL, AV_LOG_ERROR, "Failed to write video frame to buffer: %s (%i)\n", av_err2str(re), re);
         goto end;
     }
+    ReleaseMutex(handle->video_mutex);
     av_log(NULL, AV_LOG_DEBUG, "Video frame added to buffer.\n");
     *writed = 1;
     re = 0;
-    ReleaseMutex(handle->video_mutex);
 end:
-    
     return re;
 }
 
 int decode(PlayerSession* handle, char* audio_writed, char* video_writed) {
-    if (!handle || !audio_writed || !video_writed) return PLAYER_ERR_NULLPTR;
+    if (!handle) return PLAYER_ERR_NULLPTR;
+    if (!audio_writed && !video_writed) return PLAYER_ERR_NULLPTR;
     AVPacket pkt;
     AVFrame* frame = av_frame_alloc();
-    *audio_writed = 0;
-    *video_writed = 0;
+    if (audio_writed) *audio_writed = 0;
+    if (video_writed) *video_writed = 0;
     if (!frame) {
         return PLAYER_ERR_OOM;
     }
     int re = 0;
     while (1) {
-        if (handle->has_audio && !handle->audio_is_eof) {
+        if (handle->has_audio && !handle->audio_is_eof && audio_writed) {
             if ((re = decode_audio_internal(handle, audio_writed, frame))) {
                 goto end;
             }
         }
-        if (handle->has_video && !handle->video_is_eof) {
+        if (handle->has_video && !handle->video_is_eof && video_writed) {
             if ((re = decode_video_internal(handle, video_writed, frame))) {
                 goto end;
             }
         }
-        if (*audio_writed || *video_writed || ((!handle->has_audio || handle->audio_is_eof) && (!handle->has_video || handle->video_is_eof))) {
+        if ((audio_writed && *audio_writed) || (video_writed && *video_writed) || ((!handle->has_audio || handle->audio_is_eof) && (!handle->has_video || handle->video_is_eof))) {
             break;
         }
         if ((re = av_read_frame(handle->fmt, &pkt)) < 0) {
@@ -257,21 +267,27 @@ int decode(PlayerSession* handle, char* audio_writed, char* video_writed) {
             continue;
         }
         av_packet_unref(&pkt);
-        if (handle->has_audio && !handle->audio_is_eof) {
+        if (handle->has_audio && !handle->audio_is_eof && audio_writed) {
             if ((re = decode_audio_internal(handle, audio_writed, frame))) {
                 goto end;
             }
         }
-        if (handle->has_video && !handle->video_is_eof) {
+        if (handle->has_video && !handle->video_is_eof && video_writed) {
             if ((re = decode_video_internal(handle, video_writed, frame))) {
                 goto end;
             }
         }
-        if (*audio_writed || *video_writed || ((!handle->has_audio || handle->audio_is_eof) && (!handle->has_video || handle->video_is_eof))) {
+        if ((audio_writed && *audio_writed) || (video_writed && *video_writed) || ((!handle->has_audio || handle->audio_is_eof) && (!handle->has_video || handle->video_is_eof))) {
             break;
         }
     }
 end:
-    if (frame && !(*video_writed)) av_frame_free(&frame);
+    if (frame) {
+        if (video_writed && !*video_writed) {
+            av_frame_free(&frame);
+        } else if (audio_writed) {
+            av_frame_free(&frame);
+        }
+    }
     return re;
 }

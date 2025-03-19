@@ -14,6 +14,7 @@ extern "C" {
 #include "libswresample/swresample.h"
 #include "libavutil/audio_fifo.h"
 #include "libavutil/fifo.h"
+#include "libavutil/time.h"
 #include "libavutil/timestamp.h"
 #include "libswscale/swscale.h"
 #ifdef __cplusplus
@@ -30,6 +31,10 @@ typedef struct PlayerSettings {
     void** hWnd;
     /// @brief 是否自动调节窗口大小
     unsigned char resize: 1;
+    /// @brief 音频缓冲区大小（单位 ms）
+    uint32_t audio_buffer_size;
+    /// @brief 视频缓冲区大小（单位 ms）
+    uint32_t video_buffer_size;
 } PlayerSettings;
 
 typedef struct PlayerSession {
@@ -78,10 +83,6 @@ typedef struct PlayerSession {
     int64_t video_pts;
     int64_t video_end_pts;
     int64_t video_first_pts;
-    /// @brief 上一帧视频播放时间
-    int64_t video_pts_time;
-    /// @brief 上一帧音频播放位置
-    int64_t video_last_pts;
     /// 最近一个包的时间
     int64_t last_pkt_pts;
     /// @brief SDL 窗口
@@ -95,6 +96,17 @@ typedef struct PlayerSession {
     SwsContext* sws;
     /// @brief 播放设置
     PlayerSettings* settings;
+    /// @brief 缓冲区应有的音频样本数
+    uint64_t needed_audio_samples;
+    /// @brief 缓冲区应有的视频帧数
+    uint64_t needed_video_frames;
+    /// @brief 缓冲区的最大视频帧数
+    uint64_t max_video_frames;
+    /// @brief 渲染下一帧视频数据的大致时间戳
+    int64_t next_video_timestamp;
+    /// @brief 上一次更新音频数据的时间戳
+    int64_t last_pts_timestamp;
+    SDL_DisplayMode sdl_display_mode;
     /// @brief 是否初始化了SDL
     unsigned char sdl_initialized : 1;
     /// 让事件处理线程退出标志位

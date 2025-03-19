@@ -98,7 +98,8 @@ int player_create2(const char* url, PlayerSession** session, PlayerSettings* set
     }
     ses->first_pts = INT64_MIN;
     ses->video_first_pts = INT64_MIN;
-    ses->video_last_pts = INT64_MIN;
+    ses->next_video_timestamp = INT64_MIN;
+    ses->last_pts_timestamp = INT64_MIN;
     if ((re = open_input(ses, url))) {
         goto end;
     }
@@ -139,11 +140,16 @@ int player_create2(const char* url, PlayerSession** session, PlayerSettings* set
     if ((re = init_audio_output(ses))) {
         goto end;
     }
-    ses->video_buffer = av_fifo_alloc2(0, sizeof(AVFrame*), AV_FIFO_FLAG_AUTO_GROW);
-    if (!ses->video_buffer) {
-        av_log(nullptr, AV_LOG_ERROR, "Failed to allocate video buffer.\n");
-        re = PLAYER_ERR_OOM;
-        goto end;
+    if (ses->has_video) {
+        AVRational tb = { 1, 1000 };
+        AVRational rps = { ses->video_decoder->framerate.den, ses->video_decoder->framerate.num };
+        ses->needed_video_frames = av_rescale_q(ses->settings->video_buffer_size, tb, rps);
+        ses->video_buffer = av_fifo_alloc2(ses->needed_video_frames, sizeof(AVFrame*), 0);
+        if (!ses->video_buffer) {
+            av_log(nullptr, AV_LOG_ERROR, "Failed to allocate video buffer.\n");
+            re = PLAYER_ERR_OOM;
+            goto end;
+        }
     }
     if (ses->settings->hWnd) {
         if ((re = init_video_output(ses))) {
@@ -262,6 +268,7 @@ void play(const char* filename, void** hWnd) {
     if (wait_player_inited(ses)) {
         return;
     }
+    player_wait_until_buffer_is_full(ses);
     player_play(ses);
     while (ses->is_playing) {
         Sleep(10);
@@ -283,11 +290,23 @@ void player_settings_default(PlayerSettings* settings) {
     if (!settings) return;
     memset(settings, 0, sizeof(PlayerSettings));
     settings->resize = 1;
+    settings->audio_buffer_size = 1000;
+    settings->video_buffer_size = 1000;
 }
 
 void player_settings_set_resize(PlayerSettings* settings, unsigned char resize) {
     if (!settings) return;
     settings->resize = resize;
+}
+
+void player_settings_set_audio_buffer_size(PlayerSettings* settings, uint32_t size) {
+    if (!settings) return;
+    settings->audio_buffer_size = size;
+}
+
+void player_settings_set_video_buffer_size(PlayerSettings* settings, uint32_t size) {
+    if (!settings) return;
+    settings->video_buffer_size = size;
 }
 
 void player_settings_free(PlayerSettings** settings) {
@@ -368,7 +387,7 @@ int player_play(PlayerSession* session) {
     if (session->is_playing) return PLAYER_ERR_OK;
     session->is_playing = 1;
     if (session->has_audio) SDL_PauseAudioDevice(session->device_id, 0);
-    if (session->has_video) schedule_refresh(session, 1);
+    if (session->has_video) video_refresh_timer(session);
     return PLAYER_ERR_OK;
 }
 
@@ -413,4 +432,22 @@ size_t player_ts_max_string_size() {
 char* player_ts_make_string(char* buf, int64_t ts) {
     if (!buf) return nullptr;
     return av_ts_make_time_string(buf, ts, &AV_TIME_BASE_Q);
+}
+
+int player_buffer_is_full(PlayerSession* session) {
+    if (!session) return 0;
+    if (session->has_audio && session->has_video) {
+        return av_audio_fifo_size(session->buffer) >= session->needed_audio_samples && !av_fifo_can_write(session->video_buffer) ? 1 : 0;
+    } else if (session->has_audio) {
+        return av_audio_fifo_size(session->buffer) >= session->needed_audio_samples ? 1 : 0;
+    } else if (session->has_video) {
+        return !av_fifo_can_write(session->video_buffer) ? 1 : 0;
+    }
+}
+
+void player_wait_until_buffer_is_full(PlayerSession* session) {
+    if (!session) return;
+    while (!player_buffer_is_full(session)) {
+        Sleep(1);
+    }
 }
