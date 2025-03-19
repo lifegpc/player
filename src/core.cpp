@@ -137,8 +137,16 @@ int player_create2(const char* url, PlayerSession** session, PlayerSettings* set
     if ((re = init_audio_output(ses))) {
         goto end;
     }
-    if ((re = init_video_output(ses))) {
+    ses->video_buffer = av_fifo_alloc2(0, sizeof(AVFrame*), AV_FIFO_FLAG_AUTO_GROW);
+    if (!ses->video_buffer) {
+        av_log(nullptr, AV_LOG_ERROR, "Failed to allocate video buffer.\n");
+        re = PLAYER_ERR_OOM;
         goto end;
+    }
+    if (ses->settings->hWnd) {
+        if ((re = init_video_output(ses))) {
+            goto end;
+        }
     }
     ses->mutex = CreateMutexW(nullptr, FALSE, nullptr);
     if (!ses->mutex) {
@@ -233,9 +241,12 @@ void player_free(PlayerSession** session) {
     *session = nullptr;
 }
 
-void play(const char* filename) {
+void play(const char* filename, void** hWnd) {
+    PlayerSettings* settings = player_settings_init();
+    if (!settings) return;
+    player_settings_set_hWnd(settings, hWnd);
     PlayerSession* ses = nullptr;
-    int re = player_create(filename, &ses);
+    int re = player_create2(filename, &ses, settings);
     if (re != PLAYER_ERR_OK) {
         char* err = player_get_err_msg(re);
         if (err) {
@@ -246,7 +257,9 @@ void play(const char* filename) {
         }
         return;
     }
-    Sleep(100);
+    if (wait_player_inited(ses)) {
+        return;
+    }
     ses->is_playing = 1;
     SDL_PauseAudioDevice(ses->device_id, 0);
     schedule_refresh(ses, 1);
@@ -326,10 +339,26 @@ void set_player_log_file(const char* filename, unsigned char append, int max_lev
         log_file = fileop::fopen(filename, append ? "ab" : "wb");
         if (!log_file) {
             av_log(nullptr, AV_LOG_ERROR, "Failed to open log file \"%s\".\n", filename);
+            log_file = nullptr;
+            av_log_set_callback(av_log_default_callback);
+            return;
         }
         log_max_level = max_level;
         av_log_set_callback(av_log_file_callback);
     } else {
         av_log_set_callback(av_log_default_callback);
     }
+}
+
+void player_settings_set_hWnd(PlayerSettings* settings, void** hWnd) {
+    if (!settings) return;
+    settings->hWnd = hWnd;
+}
+
+int wait_player_inited(PlayerSession* session) {
+    if (!session) return PLAYER_ERR_NULLPTR;
+    while (!session->video_is_init) {
+        Sleep(10);
+    }
+    return session->err;
 }

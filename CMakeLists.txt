@@ -82,6 +82,8 @@ endif()
 
 add_executable(test_play WIN32 test/test_play.cpp)
 target_link_libraries(test_play player)
+add_executable(test_play_from_hwnd WIN32 test/test_play_from_hwnd.cpp)
+target_link_libraries(test_play_from_hwnd player)
 
 install(TARGETS player)
 if (MSVC)

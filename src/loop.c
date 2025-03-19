@@ -38,6 +38,7 @@ DWORD WINAPI decode_loop(LPVOID handle) {
 DWORD WINAPI event_loop(LPVOID handle) {
     if (!handle) return PLAYER_ERR_NULLPTR;
     PlayerSession* h = (PlayerSession*)handle;
+    if (!h->video_is_init) h->err = init_video_output(h);
     SDL_Event e;
     while (1) {
         if (SDL_WaitEventTimeout(&e, 10)) {

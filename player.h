@@ -83,6 +83,7 @@ PLAYER_API int player_create(const char* url, PlayerSession** session);
  * @return 错误代码
 */
 PLAYER_API int player_create2(const char* url, PlayerSession** session, PlayerSettings* settings);
+PLAYER_API int wait_player_inited(PlayerSession* session);
 PLAYER_API void player_free(PlayerSession** session);
 
 /**
@@ -101,6 +102,12 @@ PLAYER_API void player_settings_default(PlayerSettings* settings);
  * @param resize 是否自动调整窗口大小
 */
 PLAYER_API void player_settings_set_resize(PlayerSettings* settings, unsigned char resize);
+/**
+ * @brief 设置窗口句柄
+ * @param settings 播放器设置指针
+ * @param hWnd 指向窗口句柄的指针
+*/
+PLAYER_API void player_settings_set_hWnd(PlayerSettings* settings, void** hWnd);
 PLAYER_API void player_settings_free(PlayerSettings** settings);
 
 /**
@@ -108,8 +115,9 @@ PLAYER_API void player_settings_free(PlayerSettings** settings);
  * 
  * 会阻塞当前线程。
  * @param filename 要播放的文件路径
+ * @param hWnd 指向窗口句柄的指针（可选）
  */
-PLAYER_API void play(const char* filename);
+PLAYER_API void play(const char* filename, void** hWnd);
 
 #ifdef __cplusplus
 }

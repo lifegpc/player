@@ -4,7 +4,12 @@ int init_video_output(PlayerSession* session) {
     if (!session) return PLAYER_ERR_NULLPTR;
     if (!session->has_video) return PLAYER_ERR_OK;
     if (!session->video_decoder) return PLAYER_ERR_NULLPTR;
-    session->window = SDL_CreateWindow("Player", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, session->video_decoder->width, session->video_decoder->height, SDL_WINDOW_RESIZABLE);
+    if (session->settings->hWnd) {
+        session->window = SDL_CreateWindowFrom(*session->settings->hWnd);
+        session->is_external_window = 1;
+    } else {
+        session->window = SDL_CreateWindow("Player", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, session->video_decoder->width, session->video_decoder->height, SDL_WINDOW_RESIZABLE);
+    }
     if (!session->window) {
         av_log(NULL, AV_LOG_FATAL, "Failed to create window: %s\n", SDL_GetError());
         return PLAYER_ERR_SDL;
@@ -27,13 +32,14 @@ int init_video_output(PlayerSession* session) {
         av_log(NULL, AV_LOG_FATAL, "Failed to create sws context.\n");
         return PLAYER_ERR_OOM;
     }
-    session->video_buffer = av_fifo_alloc2(0, sizeof(AVFrame*), AV_FIFO_FLAG_AUTO_GROW);
+    session->video_is_init = 1;
     return PLAYER_ERR_OK;
 }
 
 void video_display(PlayerSession *is) {
     if (!is) return;
     if (!is->has_video) return;
+    if (!is->video_is_init) return;
     AVFrame* frame;
     DWORD a = WaitForSingleObject(is->video_mutex, INFINITE);
     if (a != WAIT_OBJECT_0) return;

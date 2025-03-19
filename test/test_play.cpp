@@ -4,7 +4,7 @@
 #include "wchar_util.h"
 
 // Function to open a file dialog and get the selected file path
-std::string GetOpenFileName() {
+std::string MyGetOpenFileName() {
     wchar_t path[MAX_PATH] = L"";
     OPENFILENAMEW ofn;
     ZeroMemory(&ofn, sizeof(ofn));
@@ -30,10 +30,10 @@ std::string GetOpenFileName() {
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     set_player_log_file("test_play.log", 0, AV_LOG_DEBUG);
     while (true) {
-        std::string path = GetOpenFileName();
+        std::string path = MyGetOpenFileName();
         if (path.empty()) {
             break;
         }
-        play(path.c_str());
+        play(path.c_str(), NULL);
     }
 }

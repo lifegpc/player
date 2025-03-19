@@ -26,6 +26,8 @@ extern "C" {
 #define FF_QUIT_EVENT (SDL_USEREVENT + 1)
 
 typedef struct PlayerSettings {
+    /// @brief HWND
+    void** hWnd;
     /// @brief 是否自动调节窗口大小
     unsigned char resize: 1;
 } PlayerSettings;
@@ -111,6 +113,7 @@ typedef struct PlayerSession {
     unsigned char set_new_pts : 1;
     unsigned char set_new_video_pts : 1;
     unsigned char is_external_window : 1;
+    unsigned char video_is_init : 1;
 } PlayerSession;
 
 #endif
