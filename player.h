@@ -42,6 +42,7 @@ typedef struct PlayerSettings PlayerSettings;
 #define PLAYER_ERR_FAILED_CREATE_MUTEX 6
 #define PLAYER_ERR_WAIT_MUTEX_FAILED 7
 #define PLAYER_ERR_FAILED_CREATE_THREAD 8
+#define PLAYER_ERR_NO_DURATION 9
 
 PLAYER_API const char* player_version_str();
 PLAYER_API int32_t player_version();
@@ -54,6 +55,20 @@ PLAYER_API int32_t player_version();
  * @param max_level 最大日志级别，小于等于这个级别的日志会被记录
 */
 PLAYER_API void set_player_log_file(const char* filename, unsigned char append, int max_level);
+/**
+ * @brief 记录播放器日志
+ * @param level 日志级别
+ * @param fmt 日志格式
+*/
+PLAYER_API void player_log(int level, const char* fmt, ...);
+PLAYER_API size_t player_ts_max_string_size();
+/**
+ * @brief 将时间戳转换为字符串
+ * @param buf 用于接收字符串的缓冲区，至少需要 player_ts_max_string_size() 大小
+ * @param ts 时间戳（单位：微秒）
+ * @return 字符串指针
+*/
+PLAYER_API char* player_ts_make_string(char* buf, int64_t ts);
 /**
  * @brief 返回错误代码对应的错误消息
  * @param err 错误代码
@@ -107,6 +122,13 @@ PLAYER_API int player_pause(PlayerSession* session);
  * @return 是否正在播放
 */
 PLAYER_API int player_is_playing(PlayerSession* session);
+/**
+ * @brief 获取当前播放时间
+ * @param session 播放器会话指针
+ * @param pos 用于接收当前播放时间的指针（单位：微秒）
+ * @return 错误代码
+*/
+PLAYER_API int player_get_duration(PlayerSession* session, int64_t* duration);
 PLAYER_API void player_free(PlayerSession** session);
 
 /**

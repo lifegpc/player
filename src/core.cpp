@@ -65,6 +65,8 @@ const char* player_get_err_msg2(int err) {
         return "Failed to wait mutex";
     case PLAYER_ERR_FAILED_CREATE_THREAD:
         return "Failed to create thread";
+    case PLAYER_ERR_NO_DURATION:
+        return "No duration";
     default:
         return "Unknown error";
     }
@@ -381,4 +383,34 @@ int player_pause(PlayerSession* session) {
 int player_is_playing(PlayerSession* session) {
     if (!session) return 0;
     return session->is_playing;
+}
+
+int player_get_duration(PlayerSession* session, int64_t* duration) {
+    if (!session || !duration) return PLAYER_ERR_NULLPTR;
+    if (session->fmt->duration != AV_NOPTS_VALUE) {
+        *duration = session->fmt->duration;
+    } else if (session->has_audio && session->audio_input_stream->duration != AV_NOPTS_VALUE) {
+        *duration = session->audio_input_stream->duration;
+    } else if (session->has_video && session->video_input_stream->duration != AV_NOPTS_VALUE) {
+        *duration = session->video_input_stream->duration;
+    } else {
+        return PLAYER_ERR_NO_DURATION;
+    }
+    return PLAYER_ERR_OK;
+}
+
+void player_log(int level, const char* fmt, ...) {
+    va_list vl;
+    va_start(vl, fmt);
+    av_vlog(nullptr, level, fmt, vl);
+    va_end(vl);
+}
+
+size_t player_ts_max_string_size() {
+    return AV_TS_MAX_STRING_SIZE;
+}
+
+char* player_ts_make_string(char* buf, int64_t ts) {
+    if (!buf) return nullptr;
+    return av_ts_make_time_string(buf, ts, &AV_TIME_BASE_Q);
 }
