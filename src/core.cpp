@@ -275,13 +275,13 @@ PlayerSettings* player_settings_init() {
         av_log(nullptr, AV_LOG_ERROR, "Failed to allocate memory for PlayerSettings.\n");
         return nullptr;
     }
-    memset(s, 0, sizeof(PlayerSettings));
     player_settings_default(s);
     return s;
 }
 
 void player_settings_default(PlayerSettings* settings) {
     if (!settings) return;
+    memset(settings, 0, sizeof(PlayerSettings));
     settings->resize = 1;
 }
 
